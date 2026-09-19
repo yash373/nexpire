@@ -29,8 +29,6 @@ button { cursor: pointer; }
 .app-frame { width: min(1180px, calc(100% - 48px)); margin: 0 auto; padding: 28px 0 36px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; padding-bottom: 52px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; }
-.brand-mark { display: grid; place-items: center; width: 35px; height: 35px; border-radius: 11px 11px 11px 3px; background: var(--ink); color: var(--yellow); font: 700 25px/1 var(--display); transform: rotate(-7deg); }
-.brand-name { font-size: 19px; font-weight: 800; letter-spacing: -0.06em; }
 .privacy-pill { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .privacy-pill span { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 4px rgba(79,139,114,.12); }
 .intro-row { display: flex; align-items: end; justify-content: space-between; gap: 32px; padding-bottom: 28px; }

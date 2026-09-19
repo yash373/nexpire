@@ -12,6 +12,7 @@ import {
   Trash2,
   Undo2,
 } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -273,8 +274,7 @@ export default function Home() {
       <div className="app-frame">
         <header className="topbar">
           <Link href="/" className="brand" aria-label="Nexpire home">
-            <span className="brand-mark" aria-hidden="true">n</span>
-            <span className="brand-name">nexpire</span>
+            <Logo markSize={36} />
           </Link>
           <span className="privacy-pill"><span aria-hidden="true" />Private on this device</span>
         </header>
