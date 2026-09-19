@@ -16,6 +16,14 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## PWA deployment
+
+Nexpire includes a web app manifest, installable PNG icons, and a versioned
+service worker with an offline shell. Service workers require HTTPS in deployed
+environments; `localhost` is the exception for local development. Expiry items
+remain in browser `localStorage` and are never stored in the service-worker
+cache.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
