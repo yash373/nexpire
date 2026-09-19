@@ -1,69 +1,107 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { CalendarDays, CircleAlert, PackagePlus, Trash2 } from "lucide-react";
+import { Logo, LogoMark } from "@/components/brand/logo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import {
+  CATEGORIES,
+  formatDaysRemaining,
+  formatExpiryDate,
+  getDaysRemaining,
+  getExpiryStatus,
+  getLocalDateKey,
+  sortByExpiry,
+  type Category,
+  type ExpiryItem,
+  type ExpiryStatus,
+} from "@/lib/expiry";
+import { loadItems, saveItems } from "@/lib/storage";
+import { cn } from "@/lib/utils";
+
+const statusStyles: Record<ExpiryStatus, { label: string; dot: string; wash: string }> = {
+  expired: { label: "Expired", dot: "bg-[#c64f55]", wash: "bg-[#fff0ed]" },
+  urgent: { label: "Due soon", dot: "bg-[#ed7b43]", wash: "bg-[#fff5e8]" },
+  soon: { label: "Coming up", dot: "bg-[#d29d28]", wash: "bg-[#fff9df]" },
+  safe: { label: "Safe", dot: "bg-[#4b8f70]", wash: "bg-[#edf7ef]" },
+};
+
+function makeId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function StatusMark({ status }: { status: ExpiryStatus }) {
+  const style = statusStyles[status];
+  return <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#4d6762]"><span aria-hidden="true" className={cn("size-2 rounded-full", style.dot)} />{style.label}</span>;
+}
+
+function ItemRow({ item, onDelete }: { item: ExpiryItem; onDelete: (id: string) => void }) {
+  const daysRemaining = getDaysRemaining(item.expiryDate);
+  const status = getExpiryStatus(daysRemaining);
+  const style = statusStyles[status];
+
+  return (
+    <article className={cn("group relative overflow-hidden border-b border-[#dfe8e1] px-5 py-5 transition-colors last:border-b-0 hover:bg-[#fbfdf9]", style.wash)}>
+      <div aria-hidden="true" className={cn("absolute inset-y-0 left-0 w-1", style.dot)} />
+      <div className="flex items-start justify-between gap-4 pl-1">
+        <div className="min-w-0"><div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1"><h3 className="truncate text-[1.05rem] font-bold text-[#173b3f]">{item.name}</h3><StatusMark status={status} /></div><p className="text-sm text-[#607873]">{item.category}</p></div>
+        <button type="button" onClick={() => onDelete(item.id)} aria-label={`Delete ${item.name}`} className="flex size-11 shrink-0 items-center justify-center rounded-xl text-[#82958f] transition hover:bg-[#fff0ed] hover:text-[#b44248] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f4b942]/40"><Trash2 size={18} strokeWidth={1.8} aria-hidden="true" /></button>
+      </div>
+      <div className="mt-4 flex items-center justify-between gap-3 pl-1 text-sm"><span className="inline-flex items-center gap-2 text-[#607873]"><CalendarDays size={16} aria-hidden="true" />{formatExpiryDate(item.expiryDate)}</span><span className={cn("font-bold", status === "expired" ? "text-[#b44248]" : "text-[#173b3f]")}>{formatDaysRemaining(daysRemaining)}</span></div>
+    </article>
+  );
+}
 
 export default function Home() {
+  const [items, setItems] = useState<ExpiryItem[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<Category>("Grocery");
+  const [expiryDate, setExpiryDate] = useState(getLocalDateKey());
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // Storage is browser-only; hydrate after SSR so server and client markup agree.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setItems(loadItems(window.localStorage));
+    setHydrated(true);
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) saveItems(window.localStorage, items);
+  }, [hydrated, items]);
+
+  const sortedItems = useMemo(() => sortByExpiry(items), [items]);
+  const counts = useMemo(() => items.reduce((result, item) => { result[getExpiryStatus(getDaysRemaining(item.expiryDate))] += 1; return result; }, { expired: 0, urgent: 0, soon: 0, safe: 0 } as Record<ExpiryStatus, number>), [items]);
+
+  function addItem(form: HTMLFormElement) {
+    const formData = new FormData(form);
+    const trimmedName = String(formData.get("name") ?? "").trim();
+    const submittedCategory = String(formData.get("category") ?? "Grocery") as Category;
+    const submittedExpiryDate = String(formData.get("expiryDate") ?? "");
+    if (!trimmedName) { setError("Add a name so your family knows what this is."); return; }
+    if (!submittedExpiryDate) { setError("Choose an expiry date."); return; }
+    setItems((current) => [...current, { id: makeId(), name: trimmedName, category: submittedCategory, expiryDate: submittedExpiryDate }]);
+    setName(""); setCategory("Grocery"); setExpiryDate(getLocalDateKey()); setError("");
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen bg-[#edf4ef] text-[#173b3f]">
+      <div className="mx-auto min-h-screen max-w-6xl px-4 pb-12 sm:px-6 lg:px-10">
+        <header className="flex items-center justify-between py-6 sm:py-8"><Link href="/" className="rounded-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f4b942]/40" aria-label="Nexpire home"><Logo /></Link><span className="hidden text-sm font-semibold text-[#607873] sm:block">A little less to remember</span></header>
+        <section className="grid gap-8 pb-8 pt-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)] lg:items-start lg:gap-16 lg:pb-14 lg:pt-12">
+          <div className="max-w-xl"><p className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-[#c66f2f]"><span className="size-2 rounded-full bg-[#f4b942]" />Your household, in good time</p><h1 className="max-w-lg text-[clamp(2.6rem,8vw,5.3rem)] font-black leading-[0.94] tracking-[-0.075em] text-[#173b3f]">Know what needs attention.</h1><p className="mt-6 max-w-md text-base leading-7 text-[#607873] sm:text-lg">Keep medicines, groceries, documents, and the small things that matter from quietly slipping past their date.</p><div className="mt-8 flex flex-wrap gap-2 text-xs font-bold text-[#607873]"><span className="rounded-full bg-white/75 px-3 py-2">{items.length} {items.length === 1 ? "item" : "items"} tracked</span>{counts.urgent + counts.expired > 0 && <span className="rounded-full bg-[#fff0ed] px-3 py-2 text-[#b44248]">{counts.urgent + counts.expired} need attention</span>}</div></div>
+          <form onSubmit={(event) => { event.preventDefault(); addItem(event.currentTarget); }} className="rounded-[24px] border border-[#d5e3d8] bg-[#fffdf8] p-5 shadow-[0_20px_50px_rgba(23,59,63,0.08)] sm:p-7"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c66f2f]">New item</p><h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">Add something to watch</h2></div><PackagePlus className="text-[#f4b942]" size={27} strokeWidth={2.2} aria-hidden="true" /></div><div className="space-y-4"><label className="block text-sm font-bold text-[#173b3f]">Item name<Input name="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Paracetamol" className="mt-2" autoComplete="off" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-bold text-[#173b3f]">Category<Select name="category" value={category} onChange={(event) => setCategory(event.target.value as Category)} className="mt-2">{CATEGORIES.map((option) => <option key={option}>{option}</option>)}</Select></label><label className="block text-sm font-bold text-[#173b3f]">Expiry date<Input name="expiryDate" type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} className="mt-2" /></label></div>{error && <p role="alert" className="flex items-center gap-2 text-sm font-semibold text-[#b44248]"><CircleAlert size={16} aria-hidden="true" />{error}</p>}<Button type="submit" className="w-full"><PackagePlus size={18} aria-hidden="true" />Save item</Button></div></form>
+        </section>
+        <section aria-labelledby="items-heading" className="overflow-hidden rounded-[24px] border border-[#d5e3d8] bg-[#fffdf8] shadow-[0_20px_50px_rgba(23,59,63,0.06)]"><div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#dfe8e1] px-5 py-5 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c66f2f]">Your list</p><h2 id="items-heading" className="mt-1 text-2xl font-black tracking-[-0.04em]">Closest dates first</h2></div><div className="flex gap-3 text-xs font-bold text-[#607873]"><span><strong className="text-[#b44248]">{counts.expired}</strong> expired</span><span><strong className="text-[#d29d28]">{counts.soon}</strong> coming up</span><span><strong className="text-[#4b8f70]">{counts.safe}</strong> safe</span></div></div>{sortedItems.length > 0 ? <div>{sortedItems.map((item) => <ItemRow key={item.id} item={item} onDelete={(id) => setItems((current) => current.filter((entry) => entry.id !== id))} />)}</div> : <div className="px-6 py-16 text-center sm:px-10"><LogoMark size={56} className="mx-auto rounded-2xl shadow-[4px_4px_0_#d5e3d8]" /><h3 className="mt-5 text-xl font-black">Nothing to chase yet.</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#607873]">Add your first item above. Nexpire will keep the closest date at the top and make the urgent ones obvious.</p></div>}</section>
+        <footer className="flex justify-between gap-4 px-1 py-6 text-xs font-semibold text-[#78908c]"><span>Stored privately on this device.</span><span>Red means act now.</span></footer>
+      </div>
+    </main>
   );
 }
