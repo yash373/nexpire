@@ -44,9 +44,11 @@ export function getUnsentReminders(
 export function reconcileReminderRecords(
   records: ReminderRecord[],
   items: ExpiryItem[],
+  today?: Date,
 ): ReminderRecord[] {
   const ids = new Set(items.map((item) => item.id));
-  return records.filter((record) => ids.has(record.itemId));
+  const dateKey = today ? todayKey(today) : undefined;
+  return records.filter((record) => ids.has(record.itemId) && (!dateKey || record.dateKey === dateKey));
 }
 
 function sameReminder(a: ReminderRecord, b: ReminderRecord): boolean {

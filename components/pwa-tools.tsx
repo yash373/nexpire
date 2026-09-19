@@ -79,10 +79,14 @@ async function sendReminders(items: ExpiryItem[]) {
   if (!registration || !("showNotification" in registration)) return;
 
   const storage = window.localStorage;
-  const sent = reconcileReminderRecords(readReminderRecords(storage), items);
-  const eligible = getEligibleReminders(items, new Date());
+  const today = new Date();
+  const sent = reconcileReminderRecords(readReminderRecords(storage), items, today);
+  const eligible = getEligibleReminders(items, today);
   const unsent = getUnsentReminders(eligible, sent);
-  if (unsent.length === 0) return;
+  if (unsent.length === 0) {
+    writeReminderRecords(storage, sent);
+    return;
+  }
 
   for (const reminder of unsent) {
     const item = items.find((entry) => entry.id === reminder.itemId);

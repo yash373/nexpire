@@ -25,4 +25,12 @@ describe("local reminder eligibility", () => {
     ];
     expect(reconcileReminderRecords(records, [item("kept", "2026-09-19")])).toEqual([records[0]]);
   });
+
+  it("keeps only current-day records when reconciling", () => {
+    const records: ReminderRecord[] = [
+      { itemId: "kept", kind: "due-today", dateKey: "2026-09-19" },
+      { itemId: "kept", kind: "due-today", dateKey: "2026-09-18" },
+    ];
+    expect(reconcileReminderRecords(records, [item("kept", "2026-09-19")], today)).toEqual([records[0]]);
+  });
 });
