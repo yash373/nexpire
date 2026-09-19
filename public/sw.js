@@ -1,4 +1,4 @@
-const VERSION = "v2";
+const VERSION = "v3";
 const APP_CACHE = `nexpire-app-${VERSION}`;
 const RUNTIME_CACHE = `nexpire-runtime-${VERSION}`;
 const PRECACHE_URLS = [

@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 const serviceWorker = readFileSync(new URL("../public/sw.js", import.meta.url), "utf8");
 
 describe("service worker request policy", () => {
+  it("uses a new cache namespace when the shell changes", () => {
+    expect(serviceWorker).toMatch(/const VERSION = "v3"/);
+  });
+
   it("uses network-first navigation with branded offline fallbacks", () => {
     expect(serviceWorker).toContain('request.mode === "navigate"');
     expect(serviceWorker).toContain('caches.match("/offline")');
