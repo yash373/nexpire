@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, CircleAlert, PackagePlus, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, CircleAlert, PackagePlus, Pencil, Trash2, Undo2 } from "lucide-react";
 import { Logo, LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +70,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [todayKey, setTodayKey] = useState(getLocalDateKey());
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [deletedItem, setDeletedItem] = useState<{ item: ExpiryItem; index: number } | null>(null);
 
   useEffect(() => {
     // Storage is browser-only; hydrate after SSR so server and client markup agree.
@@ -91,6 +92,12 @@ export default function Home() {
   useEffect(() => {
     if (hydrated) saveItems(window.localStorage, items);
   }, [hydrated, items]);
+
+  useEffect(() => {
+    if (!deletedItem) return;
+    const timeout = window.setTimeout(() => setDeletedItem(null), 6000);
+    return () => window.clearTimeout(timeout);
+  }, [deletedItem]);
 
   const sortedItems = useMemo(() => sortByExpiry(items), [items]);
   const today = useMemo(() => new Date(`${todayKey}T12:00:00`), [todayKey]);
@@ -125,6 +132,27 @@ export default function Home() {
     setError("");
   }
 
+  function deleteItem(id: string) {
+    setItems((current) => {
+      const index = current.findIndex((item) => item.id === id);
+      const item = current[index];
+      if (!item) return current;
+      setDeletedItem({ item, index });
+      return current.filter((entry) => entry.id !== id);
+    });
+  }
+
+  function undoDelete() {
+    if (!deletedItem) return;
+    setItems((current) => {
+      if (current.some((item) => item.id === deletedItem.item.id)) return current;
+      const restored = [...current];
+      restored.splice(Math.min(deletedItem.index, restored.length), 0, deletedItem.item);
+      return restored;
+    });
+    setDeletedItem(null);
+  }
+
   return (
     <main className="min-h-screen bg-[#edf4ef] text-[#173b3f]">
       <div className="mx-auto min-h-screen max-w-6xl px-4 pb-12 sm:px-6 lg:px-10">
@@ -133,7 +161,8 @@ export default function Home() {
           <div className="max-w-xl"><p className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-[#c66f2f]"><span className="size-2 rounded-full bg-[#f4b942]" />Your household, in good time</p><h1 className="max-w-lg text-[clamp(2.6rem,8vw,5.3rem)] font-black leading-[0.94] tracking-[-0.075em] text-[#173b3f]">Know what needs attention.</h1><p className="mt-6 max-w-md text-base leading-7 text-[#607873] sm:text-lg">Keep medicines, groceries, documents, and the small things that matter from quietly slipping past their date.</p><div className="mt-8 flex flex-wrap gap-2 text-xs font-bold text-[#607873]"><span className="rounded-full bg-white/75 px-3 py-2">{items.length} {items.length === 1 ? "item" : "items"} tracked</span>{counts.urgent + counts.expired > 0 && <span className="rounded-full bg-[#fff0ed] px-3 py-2 text-[#b44248]">{counts.urgent + counts.expired} need attention</span>}</div></div>
           <form onSubmit={(event) => { event.preventDefault(); addItem(event.currentTarget); }} className="rounded-[24px] border border-[#d5e3d8] bg-[#fffdf8] p-5 shadow-[0_20px_50px_rgba(23,59,63,0.08)] sm:p-7"><div className="mb-6 flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c66f2f]">{editingItemId ? "Edit item" : "New item"}</p><h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">{editingItemId ? "Update what to watch" : "Add something to watch"}</h2></div><PackagePlus className="text-[#f4b942]" size={27} strokeWidth={2.2} aria-hidden="true" /></div><div className="space-y-4"><label className="block text-sm font-bold text-[#173b3f]">Item name<Input name="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Paracetamol" className="mt-2" autoComplete="off" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="block text-sm font-bold text-[#173b3f]">Category<Select name="category" value={category} onChange={(event) => setCategory(event.target.value as Category)} className="mt-2">{CATEGORIES.map((option) => <option key={option}>{option}</option>)}</Select></label><label className="block text-sm font-bold text-[#173b3f]">Expiry date<Input name="expiryDate" type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} className="mt-2" /></label></div>{error && <p role="alert" className="flex items-center gap-2 text-sm font-semibold text-[#b44248]"><CircleAlert size={16} aria-hidden="true" />{error}</p>}<div className="flex gap-3"><Button type="submit" className="w-full"><PackagePlus size={18} aria-hidden="true" />{editingItemId ? "Update item" : "Save item"}</Button>{editingItemId && <Button type="button" variant="quiet" onClick={cancelEditing}>Cancel</Button>}</div></div></form>
         </section>
-        <section aria-labelledby="items-heading" className="overflow-hidden rounded-[24px] border border-[#d5e3d8] bg-[#fffdf8] shadow-[0_20px_50px_rgba(23,59,63,0.06)]"><div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#dfe8e1] px-5 py-5 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c66f2f]">Your list</p><h2 id="items-heading" className="mt-1 text-2xl font-black tracking-[-0.04em]">Closest dates first</h2></div><div className="flex gap-3 text-xs font-bold text-[#607873]"><span><strong className="text-[#b44248]">{counts.expired}</strong> expired</span><span><strong className="text-[#d29d28]">{counts.soon}</strong> coming up</span><span><strong className="text-[#4b8f70]">{counts.safe}</strong> safe</span></div></div>{sortedItems.length > 0 ? <div>{sortedItems.map((item) => <ItemRow key={item.id} item={item} today={today} onEdit={startEditing} onDelete={(id) => setItems((current) => current.filter((entry) => entry.id !== id))} />)}</div> : <div className="px-6 py-16 text-center sm:px-10"><LogoMark size={56} className="mx-auto rounded-2xl shadow-[4px_4px_0_#d5e3d8]" /><h3 className="mt-5 text-xl font-black">Nothing to chase yet.</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#607873]">Add your first item above. Nexpire will keep the closest date at the top and make the urgent ones obvious.</p></div>}</section>
+        <section aria-labelledby="items-heading" className="overflow-hidden rounded-[24px] border border-[#d5e3d8] bg-[#fffdf8] shadow-[0_20px_50px_rgba(23,59,63,0.06)]"><div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#dfe8e1] px-5 py-5 sm:px-7"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#c66f2f]">Your list</p><h2 id="items-heading" className="mt-1 text-2xl font-black tracking-[-0.04em]">Closest dates first</h2></div><div className="flex gap-3 text-xs font-bold text-[#607873]"><span><strong className="text-[#b44248]">{counts.expired}</strong> expired</span><span><strong className="text-[#d29d28]">{counts.soon}</strong> coming up</span><span><strong className="text-[#4b8f70]">{counts.safe}</strong> safe</span></div></div>{sortedItems.length > 0 ? <div>{sortedItems.map((item) => <ItemRow key={item.id} item={item} today={today} onEdit={startEditing} onDelete={deleteItem} />)}</div> : <div className="px-6 py-16 text-center sm:px-10"><LogoMark size={56} className="mx-auto rounded-2xl shadow-[4px_4px_0_#d5e3d8]" /><h3 className="mt-5 text-xl font-black">Nothing to chase yet.</h3><p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#607873]">Add your first item above. Nexpire will keep the closest date at the top and make the urgent ones obvious.</p></div>}</section>
+        {deletedItem && <div role="status" className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-[#d5e3d8] bg-[#173b3f] px-4 py-3 text-sm font-semibold text-white"><span>Deleted {deletedItem.item.name}.</span><button type="button" onClick={undoDelete} className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-xl px-3 font-bold text-[#f9d36a] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f4b942]/40"><Undo2 size={16} aria-hidden="true" />Undo</button></div>}
         <footer className="flex justify-between gap-4 px-1 py-6 text-xs font-semibold text-[#78908c]"><span>Stored privately on this device.</span><span>Red means act now.</span></footer>
       </div>
     </main>
