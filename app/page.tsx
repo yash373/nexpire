@@ -16,6 +16,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { PwaTools } from "@/components/pwa-tools";
 import {
   CATEGORIES,
   formatDaysRemaining,
@@ -30,6 +31,7 @@ import {
   type ExpiryStatus,
 } from "@/lib/expiry";
 import { loadItems, saveItems } from "@/lib/storage";
+import { removeItem, restoreItem, upsertItem, type DeletedItem } from "@/lib/item-state";
 import { cn } from "@/lib/utils";
 
 const statusMeta: Record<ExpiryStatus, {
@@ -161,7 +163,7 @@ export default function Home() {
   const [category, setCategory] = useState<Category>("Grocery");
   const [expiryDate, setExpiryDate] = useState(getLocalDateKey());
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [deletedItem, setDeletedItem] = useState<{ item: ExpiryItem; index: number } | null>(null);
+  const [deletedItem, setDeletedItem] = useState<DeletedItem | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
@@ -231,11 +233,13 @@ export default function Home() {
       return;
     }
 
-    setItems((current) => isEditing
-      ? current.map((item) => item.id === editingItemId
-        ? { ...item, name: trimmedName, category: submittedCategory, expiryDate: submittedExpiryDate }
-        : item)
-      : [...current, { id: makeId(), name: trimmedName, category: submittedCategory, expiryDate: submittedExpiryDate }]);
+    const nextItem = {
+      id: editingItemId ?? makeId(),
+      name: trimmedName,
+      category: submittedCategory,
+      expiryDate: submittedExpiryDate,
+    } satisfies ExpiryItem;
+    setItems((current) => upsertItem(current, nextItem, editingItemId));
     resetForm();
   }
 
@@ -249,24 +253,21 @@ export default function Home() {
   }
 
   function deleteItem(id: string) {
-    setItems((current) => {
-      const index = current.findIndex((item) => item.id === id);
-      const item = current[index];
-      if (!item) return current;
-      setDeletedItem({ item, index });
-      if (editingItemId === id) resetForm();
-      return current.filter((entry) => entry.id !== id);
-    });
+    const result = removeItem(items, id);
+    if (!result.deleted) return;
+    setItems(result.items);
+    setDeletedItem(result.deleted);
+    if (editingItemId === id) resetForm();
   }
 
   function undoDelete() {
     if (!deletedItem) return;
-    setItems((current) => {
-      const restored = [...current];
-      restored.splice(Math.min(deletedItem.index, restored.length), 0, deletedItem.item);
-      return restored;
-    });
+    setItems(restoreItem(items, deletedItem));
     setDeletedItem(null);
+  }
+
+  if (!hydrated) {
+    return <main className="app-shell"><div className="app-frame loading-shell" aria-live="polite"><Logo markSize={36} /><p>Loading your private watchlist…</p></div></main>;
   }
 
   return (
@@ -325,7 +326,7 @@ export default function Home() {
             <div className="list-heading">
               <div><p className="eyebrow">Your dates</p><h2 id="list-title">Watchlist <span>{items.length}</span></h2></div>
               <div className="filter-tabs" role="group" aria-label="Filter watchlist">
-                {(["all", "attention", "safe"] as const).map((option) => <button key={option} type="button" className={cn(filter === option && "active")} onClick={() => setFilter(option)}>{option === "all" ? "All" : option === "attention" ? "Attention" : "Safe"}</button>)}
+                {(["all", "attention", "safe"] as const).map((option) => <button key={option} type="button" className={cn(filter === option && "active")} aria-pressed={filter === option} onClick={() => setFilter(option)}>{option === "all" ? "All" : option === "attention" ? "Attention" : "Safe"}</button>)}
               </div>
             </div>
             {visibleItems.length > 0 ? <div className="item-list">{visibleItems.map((item) => <ItemCard key={item.id} item={item} today={today} onEdit={startEditing} onDelete={deleteItem} />)}</div> : <div className="empty-state"><div className="empty-orbit" aria-hidden="true"><CheckCircle2 size={25} /></div><h3>{items.length === 0 ? "Your list is clear." : "Nothing in this view."}</h3><p>{items.length === 0 ? "Add the first item and we’ll keep its date in sight." : "Try another filter to see the rest of your items."}</p>{items.length === 0 && <button type="button" className="empty-link" onClick={() => document.querySelector<HTMLInputElement>('input[name="name"]')?.focus()}>Add your first item <span aria-hidden="true">↗</span></button>}</div>}
@@ -333,7 +334,7 @@ export default function Home() {
         </section>
 
         {deletedItem && <div className="undo-toast" role="status"><span><strong>{deletedItem.item.name}</strong> removed from your list.</span><button type="button" onClick={undoDelete}><Undo2 size={16} aria-hidden="true" />Undo</button></div>}
-        <footer className="footer-note"><span>Dates stay on this device.</span><span>Red means act now.</span></footer>
+        <footer className="footer-note"><span>Dates stay on this device.</span><PwaTools items={items} /><span>Red means act now.</span></footer>
       </div>
     </main>
   );

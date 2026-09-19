@@ -54,6 +54,7 @@ export function getDaysRemaining(expiryDate: string, today = new Date()): number
 }
 
 export function getExpiryStatus(daysRemaining: number): ExpiryStatus {
+  if (!Number.isFinite(daysRemaining)) return "expired";
   if (daysRemaining < 0) return "expired";
   if (daysRemaining <= 3) return "urgent";
   if (daysRemaining <= 7) return "soon";
@@ -63,7 +64,9 @@ export function getExpiryStatus(daysRemaining: number): ExpiryStatus {
 export function sortByExpiry(items: ExpiryItem[]): ExpiryItem[] {
   return [...items].sort(
     (a, b) =>
-      a.expiryDate.localeCompare(b.expiryDate) ||
+      (isValidDateKey(a.expiryDate) ? a.expiryDate : "9999-99-99").localeCompare(
+        isValidDateKey(b.expiryDate) ? b.expiryDate : "9999-99-99",
+      ) ||
       a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
   );
 }
@@ -78,6 +81,7 @@ export function formatExpiryDate(expiryDate: string): string {
 }
 
 export function formatDaysRemaining(daysRemaining: number): string {
+  if (!Number.isFinite(daysRemaining)) return "Date unavailable";
   if (daysRemaining < 0) {
     const daysAgo = Math.abs(daysRemaining);
     return `${daysAgo} ${daysAgo === 1 ? "day" : "days"} overdue`;

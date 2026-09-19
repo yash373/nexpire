@@ -108,6 +108,17 @@ button { cursor: pointer; }
 .undo-toast button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 0; border-radius: 7px; background: rgba(255,255,255,.1); color: var(--yellow); font-size: 12px; font-weight: 800; }
 .undo-toast button:hover { background: rgba(255,255,255,.18); }
 .footer-note { display: flex; justify-content: space-between; gap: 16px; padding: 23px 2px 0; color: #87948f; font-size: 11px; font-weight: 700; }
+.loading-shell { display: grid; min-height: 100vh; place-items: center; align-content: center; gap: 16px; color: var(--muted); font-size: 13px; }
+.loading-shell > svg { border-radius: 12px; }
+.pwa-action { display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.56); color: var(--ink); font-size: 11px; font-weight: 800; }
+.pwa-action:hover { background: white; border-color: var(--ink); }
+.pwa-note { color: var(--muted); }
+.offline-shell { display: grid; min-height: 100vh; place-items: center; padding: 28px; background: radial-gradient(circle at 75% 0%, #f7f4dc 0, transparent 27rem), var(--canvas); color: var(--ink); }
+.offline-card { width: min(100%, 440px); padding: 36px; border: 1px solid var(--line); border-radius: 15px; background: rgba(251,250,245,.92); box-shadow: 0 20px 50px rgba(22,45,53,.08); }
+.offline-card > .brand { margin-bottom: 42px; }
+.offline-card h1 { margin: 0; font: 600 clamp(2.5rem, 8vw, 4rem)/.95 var(--display); letter-spacing: -.07em; }
+.offline-card > p:not(.eyebrow) { max-width: 34ch; margin: 18px 0 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.offline-link { display: inline-flex; margin-top: 24px; color: var(--ink); font-size: 12px; font-weight: 800; text-underline-offset: 4px; }
 
 @media (max-width: 760px) {
   .app-frame { width: min(100% - 28px, 620px); padding-top: 18px; }
@@ -132,6 +143,8 @@ button { cursor: pointer; }
   .item-card-bottomline { align-items: end; margin-top: 18px; }
   .item-status-line { display: grid; justify-items: end; gap: 4px; }
   .undo-toast { right: 14px; bottom: 14px; left: 14px; justify-content: space-between; }
+  .footer-note { align-items: start; flex-wrap: wrap; }
+  .offline-card { padding: 26px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
