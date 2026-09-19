@@ -14,6 +14,7 @@ import {
   getDaysRemaining,
   getExpiryStatus,
   getLocalDateKey,
+  isValidDateKey,
   sortByExpiry,
   type Category,
   type ExpiryItem,
@@ -64,6 +65,7 @@ export default function Home() {
   const [category, setCategory] = useState<Category>("Grocery");
   const [expiryDate, setExpiryDate] = useState(getLocalDateKey());
   const [error, setError] = useState("");
+  const [todayKey, setTodayKey] = useState(getLocalDateKey());
 
   useEffect(() => {
     // Storage is browser-only; hydrate after SSR so server and client markup agree.
@@ -73,11 +75,22 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const refreshToday = () => setTodayKey(getLocalDateKey());
+    window.addEventListener("focus", refreshToday);
+    document.addEventListener("visibilitychange", refreshToday);
+    return () => {
+      window.removeEventListener("focus", refreshToday);
+      document.removeEventListener("visibilitychange", refreshToday);
+    };
+  }, []);
+
+  useEffect(() => {
     if (hydrated) saveItems(window.localStorage, items);
   }, [hydrated, items]);
 
   const sortedItems = useMemo(() => sortByExpiry(items), [items]);
-  const counts = useMemo(() => items.reduce((result, item) => { result[getExpiryStatus(getDaysRemaining(item.expiryDate))] += 1; return result; }, { expired: 0, urgent: 0, soon: 0, safe: 0 } as Record<ExpiryStatus, number>), [items]);
+  const today = useMemo(() => new Date(`${todayKey}T12:00:00`), [todayKey]);
+  const counts = useMemo(() => items.reduce((result, item) => { result[getExpiryStatus(getDaysRemaining(item.expiryDate, today))] += 1; return result; }, { expired: 0, urgent: 0, soon: 0, safe: 0 } as Record<ExpiryStatus, number>), [items, today]);
 
   function addItem(form: HTMLFormElement) {
     const formData = new FormData(form);
@@ -85,7 +98,7 @@ export default function Home() {
     const submittedCategory = String(formData.get("category") ?? "Grocery") as Category;
     const submittedExpiryDate = String(formData.get("expiryDate") ?? "");
     if (!trimmedName) { setError("Add a name so your family knows what this is."); return; }
-    if (!submittedExpiryDate) { setError("Choose an expiry date."); return; }
+    if (!submittedExpiryDate || !isValidDateKey(submittedExpiryDate)) { setError("Choose a valid expiry date."); return; }
     setItems((current) => [...current, { id: makeId(), name: trimmedName, category: submittedCategory, expiryDate: submittedExpiryDate }]);
     setName(""); setCategory("Grocery"); setExpiryDate(getLocalDateKey()); setError("");
   }

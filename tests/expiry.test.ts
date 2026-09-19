@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { getDaysRemaining, getExpiryStatus, sortByExpiry, type ExpiryItem } from "@/lib/expiry";
+import { getDaysRemaining, getExpiryStatus, isValidDateKey, sortByExpiry, type ExpiryItem } from "@/lib/expiry";
 
 const today = new Date(2026, 8, 19, 12);
 
 describe("expiry status", () => {
+  it.each(["2026-02-29", "2026-04-31", "2026-9-19", "not-a-date"])("rejects malformed date key %s", (dateKey) => {
+    expect(isValidDateKey(dateKey)).toBe(false);
+  });
+
+  it("accepts valid leap-day and local date keys", () => {
+    expect(isValidDateKey("2028-02-29")).toBe(true);
+    expect(isValidDateKey("2026-09-19")).toBe(true);
+  });
+
   it.each([
     [-1, "expired"],
     [0, "urgent"],
@@ -32,4 +41,3 @@ describe("expiry sorting", () => {
     expect(sortByExpiry(items).map((item) => item.name)).toEqual(["Bread", "Milk", "Zinc"]);
   });
 });
-
