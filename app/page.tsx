@@ -70,7 +70,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItems(loadItems(window.localStorage));
     setHydrated(true);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
   }, []);
 
   useEffect(() => {

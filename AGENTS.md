@@ -61,6 +61,16 @@ such as item name when dates match.
 - Make the app installable as a PWA with a valid manifest, app icons, theme
   colors, and an appropriate offline shell. Never cache stale item data in a
   way that can silently overwrite newer `localStorage` data.
+- Keep `app/manifest.ts` explicit about the app `id`, `scope`, install URL, and
+  raster 192px/512px icons. Retain SVG icons only as optional fallbacks and
+  include a maskable icon for adaptive home-screen displays.
+- Keep service-worker registration isolated from page UI, and keep
+  `public/sw.js` versioned. Pre-cache the app shell and `/offline`; use
+  network-first navigation, cache-first versioned static assets, and do not
+  cache Next.js RSC/data requests.
+- The service worker must never become a data store: expiry items remain in
+  `localStorage` under the existing key. Service-worker installation requires
+  HTTPS in deployed environments; localhost is the development exception.
 - Keep data local by default. Do not log item names, dates, or document details
   to analytics or server logs.
 
