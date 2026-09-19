@@ -1,4 +1,4 @@
-import type { Category, ExpiryItem } from "./expiry";
+import { isValidDateKey, type Category, type ExpiryItem } from "./expiry";
 
 export const STORAGE_KEY = "nexpire-items-v1";
 
@@ -18,7 +18,7 @@ function isExpiryItem(value: unknown): value is ExpiryItem {
     item.name.trim().length > 0 &&
     isCategory(item.category) &&
     typeof item.expiryDate === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(item.expiryDate)
+    isValidDateKey(item.expiryDate)
   );
 }
 
@@ -44,4 +44,3 @@ export function saveItems(storage: Storage | undefined, items: ExpiryItem[]): vo
     // Persistence can fail in private browsing or when storage is disabled.
   }
 }
-

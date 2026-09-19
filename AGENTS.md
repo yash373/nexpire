@@ -63,7 +63,8 @@ such as item name when dates match.
   way that can silently overwrite newer `localStorage` data.
 - Keep `app/manifest.ts` explicit about the app `id`, `scope`, install URL, and
   raster 192px/512px icons. Retain SVG icons only as optional fallbacks and
-  include a maskable icon for adaptive home-screen displays.
+  include a maskable icon for adaptive home-screen displays. Serve the Apple
+  touch icon from `public/apple-icon.png` so the generated metadata URL resolves.
 - Keep service-worker registration isolated from page UI, and keep
   `public/sw.js` versioned. Pre-cache the app shell and `/offline`; use
   network-first navigation, cache-first versioned static assets, and do not

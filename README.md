@@ -1,44 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nexpire
 
-## Getting Started
+Nexpire is a private, family-facing expiry tracker for medicines, groceries,
+cosmetics, documents, and other household items.
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Available checks:
 
-## PWA deployment
+```bash
+pnpm test
+pnpm lint
+pnpm build
+```
 
-Nexpire includes a web app manifest, installable PNG icons, and a versioned
-service worker with an offline shell. Service workers require HTTPS in deployed
-environments; `localhost` is the exception for local development. Expiry items
-remain in browser `localStorage` and are never stored in the service-worker
-cache.
+## Current behavior
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Add an item name, category, and expiry date.
+- Edit any saved item without changing its stable item ID.
+- Delete an item with a six-second undo action.
+- Reject missing, malformed, or impossible calendar dates.
+- Sort items by nearest expiry, with matching dates sorted by name.
+- Refresh date-derived statuses when the page regains focus or visibility.
+- Persist items only in browser `localStorage` under `nexpire-items-v1`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Status colors and labels are calculated from the local calendar date:
 
-## Learn More
+- Red: expired.
+- Orange: today through three days remaining.
+- Yellow: four through seven days remaining.
+- Green: more than seven days remaining.
 
-To learn more about Next.js, take a look at the following resources:
+## Privacy and storage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Nexpire has no backend, account system, analytics, or remote item storage.
+Item names, categories, and dates stay on the device in the browser's local
+storage. The service worker caches only the application shell; it is not a
+data store and must not overwrite local item data.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Stored records currently use this shape:
 
-## Deploy on Vercel
+```ts
+{
+  id: string;
+  name: string;
+  category: "Medicine" | "Grocery" | "Cosmetic" | "Document" | "Other";
+  expiryDate: "YYYY-MM-DD";
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Malformed records are ignored during loading rather than crashing the app.
